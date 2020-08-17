@@ -1,0 +1,41 @@
+---
+- hosts: undercloud 
+  roles:
+    - role: osp/common
+      port_type: 'normal'
+      prefix: 'tempest'
+  tasks:
+    - name: Include role to create mgmt networt
+      include_role:
+        name: osp/common
+        tasks_from: tempestnetwork.yml
+      vars:
+        physical_networks: "{{ physical_network_dpdk }}"
+        port_type: 'normal'
+        prefix: 'tempest'
+      when: physical_network_dpdk is defined and  (physical_network_dpdk|length>0) 
+    - name: Include role to create mgmt networt
+      include_role:
+        name: osp/common
+        tasks_from: tempestnetwork.yml
+      vars:
+        physical_networks: "{{ physical_network_vf }}"
+        port_type: 'normal'
+        prefix: 'tempest'
+      when: physical_network_vf is defined and  (physical_network_vf|length>0)
+    - name: Include role to create mgmt networt
+      include_role:
+        name: osp/common
+        tasks_from: tempestnetwork.yml
+      vars:
+        physical_networks: "{{ physical_network_pf }}"
+        port_type: 'normal'
+        prefix: 'tempest'
+      when: physical_network_pf is defined and  (physical_network_pf|length>0)
+
+    - name: Ansible Template Example
+      local_action: template src=tempest.j2  dest=../playbooks/tripleo/tester/tempestvar.yml
+
+    - name: Ansible Template Example
+      local_action: file src=./playbooks/tripleo/tester/tempestvar.yml dest={{ lookup('env', 'PWD') }}/debug.tempestvar.yml state=link
+

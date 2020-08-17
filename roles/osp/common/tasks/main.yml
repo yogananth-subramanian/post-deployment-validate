@@ -1,0 +1,262 @@
+---
+# TODO: Add a validation to ensure that clouds.yaml file is updated
+
+- name: Include role to create mgmt networt
+  include_role:
+    name: post_install/openstack_tasks
+    tasks_from: setup_openstack_env.yml
+
+- name: Set the path to download the overcloud switft container
+  set_fact:
+    overcloud_swift_path: "{{ ansible_env.HOME }}/swift_container"
+
+- name: Create directory to download overcloud swift container
+  file:
+    state: directory
+    path: "{{ overcloud_swift_path }}"
+
+- name: Get the plan-environment file
+  file: path="{{ overcloud_swift_path }}/plan-environment.yaml" state=absent
+
+- name: Get the plan-environment file
+  command: >
+    openstack --os-cloud undercloud container save overcloud
+  args:
+    chdir: "{{ overcloud_swift_path }}"
+    creates: "{{ overcloud_swift_path }}/plan-environment.yaml"
+
+- name: Fetch the plan-environment file
+  slurp:
+    src: "{{ overcloud_swift_path }}/plan-environment.yaml"
+  register: plan_content
+
+- name: Copy tempest results file to localhost
+  fetch:
+    flat: yes
+    src: "{{ overcloud_swift_path }}/plan-environment.yaml"
+    dest: "{{ lookup('env', 'PWD') }}/debug.plan-environment.yaml"
+
+- name: Parse the plan-environment content
+  set_fact:
+    plan: "{{ plan_content.content|b64decode|from_yaml }}"
+  no_log: true
+
+- name: Extract required variables from plan-environment
+  set_fact:
+    bridge_mappings_tmp: "{{ plan.parameter_defaults.NeutronBridgeMappings.split(',')|default([]) }}"
+    vlan_ranges_tmp: "{{ plan.parameter_defaults.NeutronNetworkVLANRanges.split(',')|default([]) }}"
+    dns_nameservers: "{{ plan.parameter_defaults.DnsServers|default([])+ ['8.8.8.8'] }}"
+    flat_net_tmp: "{{ plan.parameter_defaults.NeutronFlatNetworks.split(',')|default([]) }}"
+    extern_def_route: "{{ plan.parameter_defaults.ExternalInterfaceDefaultRoute }}"
+    extern_net_cidr: "{{ plan.parameter_defaults.ExternalNetCidr }}"
+    extern_pool_end: "{{ plan.parameter_defaults.ExternalAllocationPools[0].end }}"
+    tun_type: "{{ plan.parameter_defaults.NeutronTunnelTypes }}"
+
+- debug:
+    var: overcloud_swift_path
+
+- name: Extract required variables from plan-environment
+  set_fact:
+    bridge_mappings_tmp: "{{ bridge_mappings_tmp + plan.parameter_defaults.NeutronPhysicalDevMappings.split(',')|default([]) }}"
+  when: plan.parameter_defaults.NeutronPhysicalDevMappings is defined
+
+- debug:
+    msg: "{{plan.parameter_defaults|to_json|from_json |json_query(_query)}}"
+  vars:
+    _query: "*.NeutronPhysicalDevMappings"
+
+- name: Extract required variables from plan-environment
+  set_fact:
+    bridge_mappings_tmp: "{{ bridge_mappings_tmp +(plan.parameter_defaults|to_json|from_json |json_query(_query))[0].split(',')|default([]) }}"
+  when: plan.parameter_defaults|to_json|from_json |json_query(_query)
+  vars:
+    _query: "*.NeutronPhysicalDevMappings"
+
+- set_fact:
+    bridge_mappings: "{{ bridge_mappings|default([]) + [{ 'network': item.split(':')[0], 'bridge': item.split(':')[1] }] }}"
+  loop: "{{ bridge_mappings_tmp }}"
+
+- set_fact:
+    vlan_ranges: "{{ vlan_ranges|default([]) + [{ 'network': item.split(':')[0], 'start': item.split(':')[1]|int, 'end': item.split(':')[2]|int }] }}"
+  loop: "{{ vlan_ranges_tmp }}"
+
+- set_fact:
+    mapping: "{{ mapping|default({}) | combine({item[0].network: {'network': item[0].network, 'bridge': item[0].bridge, 'start': item[1].start, 'end': item[1].end}}) }}"
+  when: item[0].network == item[1].network
+  loop: "{{ bridge_mappings | product(vlan_ranges) | list }}"
+
+- set_fact:
+    trex_set_vlan: True
+    forward_mode: 'mac'
+  when: mapping != {}
+
+- set_fact:
+    bridge_lst: "{{bridge_lst|default([])+[item.network]}}"
+  loop: "{{bridge_mappings}}"
+
+- set_fact:
+    bridge_dfiff: "{{bridge_lst| difference(mapping.keys())}}"
+
+- set_fact:
+    mapping: "{{ mapping|default({}) | combine({item: {'network': item}}) }}"
+  loop: "{{bridge_lst| difference(mapping.keys())}}"
+
+- set_fact:
+    networks: "{{ networks|default([]) }}"
+
+- set_fact:
+    test_networks: "{{ test_networks|default([]) }}"
+
+- set_fact:
+    mgmt: "{{ mgmt|default(tun_type) }}"
+    mgmtnet: "{{None}}"
+
+- set_fact:
+    network_external: "{{lookup('vars',extern,default={})}}"
+
+- set_fact:
+    network_mgmt: "{{lookup('vars',mgmt,default={})}}"
+
+- set_fact:
+    mgmtnet: "{{mgmt}}"
+  when: mgmt in mapping.keys()
+
+- set_fact:
+    images: "{{images}}"
+    flavors: "{{flavors}}"
+
+- name: Add groups to instance
+  set_fact:
+    aggregate_groups: [] 
+    #perfflavor: "{{ flavors | combine({'name':'trex','aggregate_instance_extra_specs:flavor': 'trex' }) }}"
+    perfflavor: "{{ flavors| combine({'name':'trex','extra_specs':flavors[0]['extra_specs'] | combine({'aggregate_instance_extra_specs:flavor': 'trex' })}) }}"
+    perfagg: "{{{}|combine({'name':'trex','hosts':[perf_compute],'metadata':['flavor=trex'] }) }}"
+    #dutflavor: "{{ flavors | combine({'name':'dut','aggregate_instance_extra_specs:flavor': 'dut' }) }}"
+    dutflavor: "{{ flavors| combine({'name':'dut','extra_specs':flavors[0]['extra_specs'] | combine({'aggregate_instance_extra_specs:flavor': 'dut' })}) }}"
+    dutagg: "{{{}|combine({'name':'dut','hosts':[testpmd_compute],'metadata':['flavor=dut'] }) }}"
+  when: perf_compute is defined and testpmd_compute is defined
+
+- name: debug_flavor
+  set_fact:
+    images: "{{[images| combine({'properties':{ 'hw_vif_multiqueue_enabled': 'true' }}, recursive=True)]}}"
+  when: multiqueue_set is defined and multiqueue_set
+
+- name: Set instances
+  set_fact:
+    flavors: "{{ flavors + [perfflavor]+ [dutflavor] }}"
+    aggregate_groups: "{{ aggregate_groups + [perfagg]+ [dutagg] }}"
+    aggregate: 'True'
+  when: perf_compute is defined and testpmd_compute is defined
+
+- name: Add groups to instance
+  set_fact:
+    dut_compute: "{{ testpmd_compute.split('.')[0] }}"
+    #dut_compute: "{{ testpmd_compute }}"
+  when: testpmd_compute is defined
+
+
+- set_fact:
+    security_groups: "{{security_groups}}"
+    keypair_name: "{{keypair_name}}"
+    resources_output_file: "{{resources_output_file}}"
+    users: "{{users}}"
+    overcloud_name: "{{overcloud_name}}"
+    resource_state: "{{resource_state}}"
+    resources_output: "{{resources_output}}"
+    overcloud_delete: "{{overcloud_delete}}"
+    instance: "{{instance}}"
+    security_group: "{{security_group}}"
+    keypair: "{{keypair}}"
+    image: "{{image}}"
+    flavor: "{{flavor}}"
+    aggregate: "{{aggregate}}"
+    net_port: "{{net_port}}"
+    network: "{{network}}"
+    quota: "{{quota}}"
+    user: "{{user}}"
+    setup_os_env: "{{setup_os_env}}"
+    connection_user: "{{connection_user|default('centos')}}"
+    global_userdata: "{{global_userdata}}"
+    trex_platform: "{{trex_platform}}"
+    trex_process_threads: "{{trex_process_threads}}"
+    testpmd_lcores: "{{testpmd_lcores}}"
+    trex_lcores: "{{trex_lcores}}"
+    testpmd_socket_mem: "{{testpmd_socket_mem}}"
+    hugepages_count: "{{hugepages_count}}"
+  when: prefix != "tempest"
+
+- set_fact:
+    dut_group: "dpdk_dut"
+    dut_type: "dpdk"
+    pmd_lb_pretest: "{{pmd_lb_pretest|default(True)}}"
+    pmd_lb: "{{pmd_lb|default('ovs')}}"
+    pmd_lb_pretest_sec: "{{pmd_lb_pretest_sec|default('90')}}"
+  when : (physical_network_dpdk is defined and  (physical_network_dpdk|length>0)) or (dut_type is defined and dut_type == 'dpdk')
+
+- set_fact:
+    dut_group: "sriov_dut"
+    dut_type: "sriov"
+  when : (physical_network_vf is defined and  (physical_network_vf|length>0)) or (dut_type is defined and dut_type != 'dpdk')
+
+#- set_fact:
+#    network_external: "{{ network_external|combine({'cidr':extern_net_cidr})}}"
+#  when: network_external.cidr is not defined
+
+#- set_fact:
+#    network_external: "{{ network_external|combine({'gateway_ip':extern_def_route})}}"
+#  when: network_external.gateway_ip is not defined
+
+#- set_fact:
+#    network_external: "{{ network_external|combine({'allocation_pool_start':extern_pool_end|ipmath(10)})}}"
+#  when: network_external.allocation_pool_start is not defined
+
+#- set_fact:
+#    network_external: "{{ network_external|combine({'allocation_pool_end':extern_pool_end|ipmath(20)})}}"
+#  when: network_external.allocation_pool_end is not defined
+
+- set_fact:
+    network_external: "{{ network_external|combine({'physical_network':extern})}}"
+  when: network_external.physical_network is not defined
+
+- name: Include role to create external network
+  include_role:
+    name: osp/common
+    tasks_from: network.yml
+  vars:
+    network_name: "{{network_external}}"
+    physical_network_name: "{{ network_external.physical_network }}" 
+    netprefix: "extern"
+
+- name: Include role to create mgmt networt
+  include_role:
+    name: osp/common
+    tasks_from: network.yml
+  vars:
+    network_name: "network_mgmt"
+    physical_network_name: "{{mgmtnet}}"
+    netprefix: "mgmt"
+
+- name: Include role to create mgmt networt
+  include_role:
+    name: osp/common
+    tasks_from: network.yml
+  vars:
+    network_name: "network_mgmt"
+    physical_network_name: "{{None}}"
+    netprefix: "mgmt"
+  when: prefix != "tempest" and tun_type not in mgmt and groups['openstack_nodes']|length >2 and physical_network_pf is defined
+
+- set_fact:
+    image_ssh_user: "{{image_ssh_user}}"
+    tempest_flavor_name: "{{flavors[0].name}}"
+    tempest_tests: "{{tempest_tests}}"
+    tempest_config: "{{tempest_config}}"
+  when: prefix == "tempest"
+
+- name: Create a counter for cidr
+  set_fact:
+    cidr_number: "{{ cidr_number|int + 2 }}"
+  when: (cidr_number|int) <= 2
+
+- debug:
+    var: hostvars[groups['undercloud'][0]]['forward_mode']

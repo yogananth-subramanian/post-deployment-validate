@@ -1,0 +1,5 @@
+---
+- debug:
+    var: network_name
+- debug:
+    var: port_name

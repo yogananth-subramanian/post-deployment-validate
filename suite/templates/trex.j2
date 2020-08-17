@@ -1,0 +1,80 @@
+---
+{% if instances is defined %}
+instances:
+{{instances| to_nice_yaml}}
+{% endif %}
+
+{% if dynamic_instances is defined %}
+dynamic_instances:
+{{dynamic_instances| to_nice_yaml}}
+{% endif %}
+
+networks:
+{{networks| to_nice_yaml}}
+
+
+security_groups:
+{{security_groups| to_nice_yaml}}
+
+users:
+{{users| to_nice_yaml}}
+
+flavors:
+{{flavors| to_nice_yaml}}
+
+{% if aggregate_groups is defined %}
+aggregate_groups:
+{{aggregate_groups| to_nice_yaml}}
+{% endif %}
+
+images:
+{{images| to_nice_yaml}}
+
+keypair_name: {{keypair_name}}
+
+dut_group: {{dut_group}}
+
+resources_output_file: /home/stack/resources_output_file.yml
+
+setup_os_env: true
+user: true
+quota: true
+network: true
+net_port: true
+{% if aggregate_groups is defined %}
+aggregate: true
+{% else %}
+aggregate: false
+{% endif %}
+{% if multiqueue_set is defined  and multiqueue_set %}
+multiqueue_set: true
+{% else %}
+multiqueue_set: false
+{% endif %}
+{% if dut_compute is defined %}
+dut_compute: {{dut_compute.split('.')[0]}}
+#dut_compute: {{dut_compute}}
+{% endif %}
+{% if dut_type is defined %}
+dut_type: {{dut_type}}
+{% endif %}
+connection_user: {{connection_user}}
+
+flavor: true
+image: true
+keypair: true
+security_group: true
+instance: true
+overcloud_delete: false
+resources_output: true
+
+resource_state: present
+
+overcloud_name: overcloud
+
+trex_process_threads: {{trex_process_threads}}
+testpmd_lcores: {{testpmd_lcores}}
+trex_lcores: {{trex_lcores}}
+testpmd_socket_mem: {{testpmd_socket_mem}}
+hugepages_count: {{hugepages_count}}
+

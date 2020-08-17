@@ -1,0 +1,160 @@
+---
+
+- debug:
+    var: physical_network_name
+
+- debug:
+    var: tun_type
+
+- name: Set the type of the network - vlan
+  set_fact:
+    ref_physical_network_name: "{{lookup('vars',physical_network_name,default={})}}"
+
+- debug:
+    var: ref_physical_network_name
+
+- name: Set the type of the network - vlan
+  set_fact:
+    network_type: 'vlan'
+  when: mapping[physical_network_name] is defined and mapping[physical_network_name].start is defined
+
+- name: Set the type of the network - flat
+  set_fact:
+    network_type: 'flat'
+    seg_id: ''
+  when: mapping[physical_network_name] is defined and mapping[physical_network_name].start is not defined
+
+- name: Set the type of the network - flat
+  set_fact:
+    network_type: 'flat'
+    seg_id: ''
+  when: netprefix == 'extern' and mapping[physical_network_name] is defined and physical_network_name in flat_net_tmp
+
+- name: Set the type of the network - vxlan
+  set_fact:
+    network_type: "{{tun_type}}"
+    mgmt_name: "{{tun_type}}"
+    seg_id: ''
+  when: mapping[physical_network_name] is not defined
+
+- name: Set the type of the network - vxlan
+  set_fact:
+    mgmt_name: "{{ mgmt_name|default(mgmt) }}"
+
+- name: Reset tempnet
+  set_fact:
+    tempnet: {}
+
+- block:
+  - name: Fetch the segmentation id for the physical network "{{ physical_network_name }}"
+    set_fact:
+      seg_id: "{{ mapping[physical_network_name].start }}"
+      seg_cnt: 0
+
+  - name: Fetch the segmentation id for the physical network "{{ physical_network_name }}"
+    set_fact:
+      seg_id: "{{seg_id|int + 1}}"
+    when: seg_tag|default(0)|int == seg_id|int  and  netprefix != 'mgmt'
+
+  - name: Fetch the segmentation id for the physical network "{{ physical_network_name }}"
+    set_fact:
+      seg_id: "{{seg_id|int + 2}}"
+    when: netprefix == 'mgmt'
+
+  - name: Increment the vlan start id in the mapping
+    set_fact:
+      seg_tag: "{{seg_id}}"
+  when: network_type == 'vlan'
+
+
+- name: Create a counter for cidr
+  set_fact:
+    cidr_number: 1
+  when: cidr_number is not defined
+
+- set_fact:
+    gateway_ip: "{{ ref_physical_network_name.gateway_ip|default(extern_def_route) }}"
+    cidr: "{{ ref_physical_network_name.cidr|default (extern_net_cidr) }}"
+    allocation_pool_start: "{{ ref_physical_network_name.allocation_pool_start|default(extern_net_cidr|next_nth_usable(10))}}"
+    allocation_pool_end: "{{ ref_physical_network_name.allocation_pool_end|default(extern_net_cidr|next_nth_usable(20))}}"
+  when: netprefix == "extern" 
+
+- name: Set the network prefix for the internal network
+  set_fact:
+    cidr: "{{ ref_physical_network_name.cidr|default (cidr_prefix|string+'.0.'+cidr_number|string+'.0/24')}}"
+    cidr_number: "{{ cidr_number|int + 1 }}"
+  when: netprefix != "extern"
+
+- name: Set the allocation pool start, end and gateway
+  set_fact:
+    allocation_pool_start: "{{ ref_physical_network_name.allocation_pool_start|default(cidr|next_nth_usable(10))}}"
+    allocation_pool_end: "{{ ref_physical_network_name.allocation_pool_end|default(cidr|next_nth_usable(100))}}"
+    gateway_ip: "{{ ref_physical_network_name.gateway_ip|default(cidr| ipaddr('last_usable'))}}"
+  when: netprefix != "extern"
+
+- name: Set the allocation pool start, end and gateway
+  set_fact:
+    networks_lst: "{{ networks_lst|default([])+[item.name]}}"
+  loop: "{{networks}}"
+
+- name: Set the internal network
+  set_fact:
+#    net_name: "{{[physical_network_name,seg_id,port_type]|join('_')}}"
+    net_name: "{{[physical_network_name,seg_id,port_type| replace('-physical','')]|join('_')}}"
+  when: netprefix != "extern" and  netprefix != "mgmt" 
+
+- name: Set the internal network
+  set_fact:
+    tempnet: "{{ tempnet |combine({'name': net_name,'network_type':network_type,'cidr':cidr,'allocation_pool_start':allocation_pool_start,'allocation_pool_end':allocation_pool_end,'no_gateway_ip': true,'enable_dhcp': false,'port_type':port_type}) }}"
+  when: netprefix != "extern" and  netprefix != "mgmt" and net_name not in networks_lst
+
+- name: Set external network
+  set_fact:
+    tempnet: "{{ tempnet | combine({'name': extern,'network_type':network_type,'cidr':cidr,'allocation_pool_start':allocation_pool_start,'allocation_pool_end':allocation_pool_end,'gateway_ip':gateway_ip,'enable_dhcp': true,'external': true,'shared': true,'router_name': 'router1','port_type':port_type}) }}"
+  when: netprefix == "extern" 
+
+- name: Set mgmt network
+  set_fact:
+    tempnet: "{{ tempnet | combine({'name': 'mgmt_'+mgmt_name,'network_type':network_type,'cidr':cidr,'allocation_pool_start':allocation_pool_start,'allocation_pool_end':allocation_pool_end,'gateway_ip':gateway_ip,'enable_dhcp': true,'external': false,'router_name': 'router1','mgmt': true,'tag': 'external','port_type':port_type}) }}"
+  when: netprefix == 'mgmt'
+
+- name: Set networks keys 
+  set_fact:
+    tempnet: "{{ tempnet | combine({'ip_version':4}) }}"
+  when: netprefix != 'extern' and tempnet.keys()|length > 0
+
+- name: Set networks keys 
+  set_fact:
+    tempnet: "{{ tempnet | combine({'trusted_vf': true}) }}"
+  when: netprefix != 'extern' and  netprefix != "mgmt" and prefix == 'tempest' and port_type == 'direct' and tempnet.keys()|length > 0
+
+- name: Set networks keys ovs dpdk interface
+  set_fact:
+    tempnet: "{{ tempnet | combine({'sec_groups': true}) }}"
+  when: port_type == 'normal' and netprefix != 'extern'  and tempnet.keys()|length > 0
+
+- name: Set networks keys 
+  set_fact:
+    tempnet: "{{ tempnet | combine({'physical_network':physical_network_name|default(omit)}) }}"
+  when: network_type != tun_type and tempnet.keys()|length > 0
+
+- name: Set networks keys 
+  set_fact:
+    tempnet: "{{ tempnet | combine({'segmentation_id':ref_physical_network_name.segmentation_id|default(seg_id)}) }}"
+  when: seg_id != '' and tempnet.keys()|length > 0
+
+- name: Set networks for extern
+  set_fact:
+    networks: "{{ networks + [tempnet] }}"
+  when: tempnet.keys()|length > 0 and netprefix == 'extern'
+
+- name: Set networks for trex
+  set_fact:
+    networks: "{{ networks + [tempnet] }}"
+  when: tempnet.keys()|length > 0 and prefix != 'tempest' and netprefix != 'extern'
+
+- name: Set test_network for tempest
+  set_fact:
+    test_networks: "{{ test_networks + [tempnet] }}"
+  when: tempnet.keys()|length > 0 and prefix == 'tempest' and netprefix != 'extern'
+ 

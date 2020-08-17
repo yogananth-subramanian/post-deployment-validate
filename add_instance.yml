@@ -1,0 +1,49 @@
+---
+- hosts: undercloud
+  gather_facts: False
+  tasks:
+  - name: Reset Variables
+    set_fact:
+      instance_nics: []
+      instance_helper_nic_mac_addresses: []
+
+  - name: Gather Instance Facts From OpenStack API
+    vars:
+      ansible_python_interpreter: "{{venv_path}}/bin/python"
+      query_instance: "{{ item['name'] }}"
+      discover_instance_external_ip: True
+      query_cloud: "{{ item['cloud'] | default('overcloud') }}"
+      cloud_validate_certs: "{{ item['cert_validate']  | default(False) }}"
+    include_tasks: roles/osp/common/tasks/add_instance.yml
+    loop: "{{dynamic_instances}}"
+
+- hosts: 'trex'
+  tasks:
+  - name: Gather Instance Facts From OpenStack API
+    block:
+    - name: Gather Instance Facts From OpenStack API
+      include_tasks: roles/osp/common/tasks/query_port.yml
+
+    - name: Parse DuT Destination Macs
+      set_fact:
+        trex_macs: "{{ vm_macs }}"
+
+    - name: Populate Trex NICs info variable
+      set_fact:
+        trex_instance_nics_info: >-
+          {{ trex_instance_nics_info | default([]) }} + [{
+          'mac_address': '{{ item }}'
+          }]
+      loop: "{{ trex_macs.split(',') }}"
+
+- hosts: "{{dut_group|default('dpdk_dut')}}"
+  tasks:
+  - name: Gather Instance Facts From OpenStack API
+    block:
+    - name: Gather Instance Facts From OpenStack API
+      include_tasks: roles/osp/common/tasks/query_port.yml
+
+    - name: Parse DuT Destination Macs
+      set_fact:
+        dut_macs: "{{ vm_macs }}"
+      when: dut_macs is not defined

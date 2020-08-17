@@ -1,0 +1,94 @@
+---
+- debug:
+    var: port_list
+  ignore_errors: yes
+
+- name: map networks to port
+  set_fact:
+   mgmt_name: "vxlan"
+  when: '"trex" in server_name and groups["openstack_nodes"]|length >2'
+
+- name: Set the type of the network - vxlan
+  set_fact:
+    mgmt_name: "{{ mgmt }}"
+  when: '"testpmd" in server_name'
+
+# Format when both network name and port has to be provided as input - (net/port)-(id/name)
+# net-name=net1,port-name=port1
+- name: Change format of nics if port is provided as input
+  block:
+    - name: Reset port_list
+      set_fact:
+        nics_updated: []
+
+    - set_fact:
+        nics_updated: "{{ nics_updated|default([]) + [ 'net-name=' + 'mgmt_'+mgmt_name ] }}"
+
+    - set_fact:
+        nics_updated: "{{ nics_updated + [ 'port-name=' + item ] }}"
+      loop: "{{ port_list }}"
+      when: port_list is defined and port_list|length > 0
+
+- name: Reset net_portlst
+  set_fact:
+   net_portlst: []
+
+- name: map networks to port
+  set_fact:
+   net_portlst: "{{ net_portlst|default([]) + [item] }}"
+#  when: item.physical_network is defined and item.physical_network in networklst and port_type in item.name
+  when: item.physical_network is defined and item.physical_network in networklst and port_type| replace('-physical','') in item.name
+  loop: "{{ netlst }}"
+
+
+- name: Reset net_ports
+  set_fact:
+   net_ports: []
+
+- name: Set net_ports
+  set_fact:
+   net_ports: "{{ net_ports|default([]) + [{'name': item.1,'network':item.0.name,'type':port_type}] }}"
+  with_together:
+    - "{{ net_portlst }}"
+    - "{{ port_list }}"
+
+
+- name: Reset tempinst
+  set_fact:
+    tempinst: {}
+    flavor_name: "{{flavors[0].name}}"
+
+- name: Add groups to instance
+  set_fact:
+    flavor_name: "trex"
+  when: '"trex" in server_name and perf_compute is defined'
+
+- name: Add groups to instance
+  set_fact:
+    flavor_name: "dut"
+  when: '"testpmd" in server_name and testpmd_compute is defined and perf_compute is defined'
+
+- name: Set the instances variables
+  set_fact:
+   tempinst: "{{ tempinst | combine({'name':server_name,'flavor':flavor_name,'image':images[0].name,'key_name':key,'nics':nics_updated,'net_ports':net_ports,'floating_ip':{'ext_net':extern,'int_net': 'mgmt_'+mgmt_name},'sec_groups':security_groups[0].name,'config_drive': true }) }}"
+
+
+- name: Add groups to instance
+  set_fact:
+    tempinst: "{{ tempinst | combine({'groups':'trex'}) }}"
+  when: '"trex" in server_name'
+
+- name: Add groups to instance
+  set_fact:
+    tempinst: "{{ tempinst | combine({'groups':dut_group}) }}"
+  when: '"testpmd" in server_name'
+
+- name: Set instances
+  set_fact:
+    instances: "{{ instances + [tempinst] }}"
+  when: tempinst.keys()|length > 0
+
+- name: Set dut_group network
+  set_fact:
+    dut_group: "{{dut_group}}"
+

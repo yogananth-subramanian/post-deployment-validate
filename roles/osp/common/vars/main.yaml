@@ -1,0 +1,53 @@
+---
+setup_os_env: true
+user: true
+quota: true
+network: true
+net_port: true
+aggregate: false
+flavor: true
+image: true
+keypair: true
+security_group: true
+instance: true
+overcloud_delete: false
+resources_output: true
+
+resource_state: present
+
+overcloud_name: overcloud
+
+flavors:
+  - name: perf_numa_0_trex
+    ram: 10240
+    disk: 20
+    vcpus: 10
+    extra_specs:
+     "hw:mem_page_size": "1GB"
+     "hw:numa_mem.0": "10240"
+     "hw:numa_mempolicy": "strict"
+     "hw:numa_cpus.0": "0,1,2,3,4,5,6,7,8,9"
+     "hw:cpu_policy": "dedicated"
+     "hw:emulator_threads_policy": "isolate"
+
+users:
+  - name: nfv_user1
+    pass: nfv_user1
+    project: nfv_user1
+    domain: default
+    role: admin
+
+keypair_name: test_keypair
+resources_output_file: /home/stack/resources_output_file.yml
+
+security_groups:
+  - name: test_secgroup
+    rules:
+      - protocol: icmp
+        port_range_min: -1
+        port_range_max: -1
+        remote_ip_prefix: 0.0.0.0/0
+      - protocol: tcp
+        port_range_min: 22
+        port_range_max: 22
+        remote_ip_prefix: 0.0.0.0/0

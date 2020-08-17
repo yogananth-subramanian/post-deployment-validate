@@ -1,0 +1,16 @@
+---
+- set_fact:
+    test_networks: "{{ test_networks|default([]) }}"
+
+- set_fact:
+    seg_tag: 0
+
+- name: Include role to create networt
+  include_role:
+    name: osp/common
+    tasks_from: network.yml
+  vars:
+    network_name: "net-{{ item }}"
+    physical_network_name: "{{ item }}"
+    netprefix: "tenant"
+  loop: "{{ physical_networks }}"

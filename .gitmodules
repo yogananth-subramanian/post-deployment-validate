@@ -1,0 +1,4 @@
+[submodule "ansible-nfv"]
+	path = ansible-nfv
+	url = https://github.com/redhat-openstack/ansible-nfv.git
+	branch = devel

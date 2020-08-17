@@ -1,0 +1,48 @@
+- name: Check if valid devices are provided as input for trex_external_pfs
+  fail:
+    msg: "Provide trex_external_pfs with the list of PFs to be attached to the TRex VM"
+  when: trex_external_pfs|length <= 1
+
+- name: Get the PCI address of th devices
+  set_fact:
+    pci_address: "{{ pci_address|default([]) + [ 'pci_' + ansible_facts[item]['pciid']|replace('.', '_')|replace(':', '_') ] }}"
+  loop: "{{ trex_external_pfs }}"
+
+- name: Get the list of virsh networks from the hypervisor
+  virt_net:
+    command: list_nets
+  register: virsh_net_list
+
+- name: Check if trex_external_mgmt_network network is present
+  fail:
+    msg: >
+      Management network ({{ trex_external_mgmt_network }}) is not found in hypervisor.
+      Available networks are {{ ','.join(virsh_net_list.list_nets) }}. Update trex_external_mgmt_network accordingly.
+  when: trex_external_mgmt_network not in virsh_net_list.list_nets
+
+- name: Set the perf image source, if not set
+  set_fact:
+    perf_image: "{{ perf_image_path + perf_image_base|basename }}"
+  when: perf_image is not defined
+
+- name: Copy image to libvirt directory for TRex VM creation
+  copy:
+    src: "{{ perf_image }}"
+    dest: "{{ trex_external_image_path }}"
+    owner: qemu
+    group: qemu
+    remote_src: yes
+    force: no
+
+- name: Create host-device string with pci devices to be attached
+  set_fact:
+    host_device: "{{ host_device|default('') + '--host-device=' + item + ' '}}"
+  loop: "{{ pci_address }}"
+
+- name: Define TRex VM
+  command: >
+    virt-install --ram 4096 --vcpus 4 --import --noautoconsole --vnc --os-variant rhel7
+      --disk path={{ trex_external_image_path }},device=disk,bus=virtio,format=qcow2
+      --network network:{{ trex_external_mgmt_network }} {{ host_device }} --name {{ trex_external_vm_name}}
+  register: pref_trex_vm_status
+

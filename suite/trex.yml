@@ -1,0 +1,77 @@
+---
+- hosts: undercloud 
+  pre_tasks:
+    - set_fact:
+        dyn_trex:  "{{lookup('vars',trex_vm,default='trex')}}"
+      when: trex_vm is defined
+
+    - set_fact:
+        dyn_dut:  "{{lookup('vars',testpmd_vm|default(dut_vm))}}"
+      when: testpmd_vm is defined or dut_vm is defined
+
+    - set_fact:
+        discover_instance_external_ip:  "{{not (dyn_dut.mgmt_ip is  defined and dyn_trex.mgmt_ip is  defined)}}"
+      when: dyn_dut is defined and dyn_trex is defined
+
+    - set_fact:
+        dynamic_instances: "{{dynamic_instances|default([]) + [{'name':testpmd_vm|default(dut_vm)}|combine(dyn_dut)|combine({'group':dut_group|default('dpdk_dut')})] }}"
+      when: dyn_dut is defined
+
+    - set_fact:
+        dynamic_instances: "{{dynamic_instances|default([]) + [{'name':trex_vm}|combine(dyn_trex)|combine({'group':'trex'})] }}"
+      when: dyn_trex is defined
+
+  roles:
+    - role: osp/common
+      port_type: 'normal'
+      prefix: 'trex'
+    - role: trex/install
+      physical_networks: "{{ physical_network_dpdk }}"
+      port_type: 'normal'
+      prefix: 'testpmd'
+      when : physical_network_dpdk is defined and  (physical_network_dpdk|length>0)
+    - role: trex/install
+      physical_networks: "{{ physical_network_vf }}"
+      port_type: 'direct'
+      prefix: 'testpmd'
+      when : physical_network_vf is defined and  (physical_network_vf|length>0)
+    - role: trex/install
+      physical_networks: "{{ physical_network_pf }}"
+      port_type: 'direct-physical'
+      prefix: 'trex'
+      when : physical_network_pf is defined and  (physical_network_pf|length>0)
+    - role: images/performance
+      vars:
+        prepare_guest_hci: False
+      guest_image: "{{images[0].url}}"
+      delegate_to: "{{image_build_host|default('undercloud-0')}}"
+      when:  build_image is defined and build_image|bool == True
+
+  tasks:
+    - name: Ansible Template Example
+      synchronize: src="/tmp/{{ images[0].url | basename }}" dest=/tmp/
+      delegate_to:  "{{image_build_host|default('undercloud-0')}}"
+      when:  build_image is defined and build_image|bool == True
+    - name: Ansible Template Example
+      file: path="/tmp/{{ images[0].url | basename }}" mode='0777'
+      become: true
+      when:  build_image is defined and build_image|bool == True
+    - name: debug_flavor
+      set_fact:
+        image_url: "file:///tmp/{{images[0].url| basename}}"
+      when:  build_image is defined and build_image|bool == True
+    - name: debug_flavor
+      set_fact:
+        images: "{{[images| combine({'url': image_url })]}}"
+      when:  build_image is defined and build_image|bool == True
+    - set_fact:
+        dynamic_instances: >-
+          {{ dynamic_instances | default([]) }} + [{'name': '{{ item['name'] }}',
+          'group': '{{ item['groups'] }}',
+          'user': '{{ connection_user }}',
+          'ssh_key': '/tmp/{{ item['key_name'] }}.key' }]
+      loop: "{{ instances }}"
+      when: instances is defined
+    - name: Ansible Template Example
+      local_action: template src=trex.j2  dest={{ lookup('env', 'PWD') }}/debug.trexvar.yml
+

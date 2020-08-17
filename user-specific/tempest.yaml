@@ -1,0 +1,24 @@
+image_ssh_user: cloud-user
+tempest_config: tempestvar.yml
+tests_setup:
+  - name: numa0
+    flavor: perf_numa_0_trex
+    router: true
+  - name: test-ping-mtu
+    flavor: perf_numa_0_trex
+    router: true
+    mtu: 1500
+
+tempest_tests:
+  - nfv_tempest_plugin.tests.scenario.test_nfv_basic.TestNfvBasic.test_mtu_ping_test
+
+extern: 'datacentre'
+# Management network for guest VMs (based on provider network)
+mgmt: 'data1'
+
+#physical_network_vf: ['sriov-1', 'sriov-2']
+physical_network_dpdk: ['data1']
+#physical_network_pf: ['sriov-1', 'sriov-2']
+#physical_network_vf: ['data2']
+#physical_network_offload: ['data1', 'data2']
+

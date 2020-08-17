@@ -1,0 +1,20 @@
+---
+- name: Fetch Mac Addresses Of NICs Bound To Kernel
+  shell: 'grep -vh "00:00:00:00:00:00" /sys/class/net/*/address'
+  register: kernel_nics
+
+- name: Query DuT Server Ports
+  import_role:
+    name: roles/post_install/discover_instance_ports
+  vars:
+    query_instance: "{{ ansible_hostname }}"
+  delegate_to: "{{ groups['undercloud'] | first }}"
+
+- name: Map DuT NICs To Helper Variable
+  set_fact:
+    vm_ports: "{{ vm_ports | default([]) }} + {{ item['ansible_facts']['openstack_ports'] }}"
+  loop: "{{ instance_ports['results'] }}"
+
+- name: Parse DuT Destination Macs
+  set_fact:
+    vm_macs: "{{ vm_ports | map(attribute='mac_address') | reject('search', kernel_nics['stdout']) | list | join(',') }}"

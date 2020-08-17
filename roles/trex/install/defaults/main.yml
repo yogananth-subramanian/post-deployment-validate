@@ -1,0 +1,14 @@
+---
+# Whether trex is created externally or part of compute node
+# For hypervisor (controller & undercloud in same node), TRex will be created in hypervisor
+is_trex_external: false
+compute_count: 0
+# For external trex, provide the physical interface names to attach to TRex VM
+trex_external_pfs: []
+# Virsh network used for external access for undercloud and controller in hypervisor
+# For infrared based deployments, usuallay network with name 'management' will be used
+trex_external_mgmt_network: management
+trex_external_image_path: /var/lib/libvirt/images/perf-image-trex.qcow2
+
+perf_image_path: "$HOME/nfv-perf"
+trex_external_vm_name: pref-trex

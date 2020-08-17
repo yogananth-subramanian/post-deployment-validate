@@ -1,0 +1,30 @@
+---
+networks:
+{{networks| to_nice_yaml}}
+
+test-networks:
+{{test_networks| to_nice_yaml}}
+
+flavors:
+{{flavors| to_nice_yaml}}
+
+images:
+{{images| to_nice_yaml}}
+
+
+image_ssh_user: {{image_ssh_user}}
+tempest_flavor_name: {{flavors[0].name}}
+
+tests-setup:
+  - name: numa0
+    flavor: perf_numa_0_trex
+    router: true
+  - name: test-ping-mtu
+    flavor: perf_numa_0_trex
+    router: true
+    mtu: 1500
+
+tempest_tests:
+  - nfv_tempest_plugin.tests.scenario.test_nfv_basic.TestNfvBasic.test_mtu_ping_test
+
+

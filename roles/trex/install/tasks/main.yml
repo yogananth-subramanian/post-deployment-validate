@@ -1,0 +1,134 @@
+---
+
+- set_fact:
+    physical_networkslst: "{{ physical_networks }}"
+
+- set_fact:
+    physical_networkslst: "{{ physical_networks + physical_networks }}"
+  when:
+    - prefix == 'trex' or prefix == 'testpmd'
+    - physical_networks|length < 2
+  
+- name: Ensure physical_networks is defined
+  fail:
+    msg: "physical_networks should be defined"
+  when: physical_networks is not defined and physical_networks|length == 0
+
+- set_fact:
+    networks: "{{ networks|default([]) }}"
+
+- name: Set the network prefix for the internal network
+  set_fact:
+    prefix: "{{prefix|default('trex')}}"
+
+- set_fact:
+    seg_tag: 0
+
+
+- name: Create a counter for cidr
+  set_fact:
+    cidr_number: "{{ cidr_number|int - 2 }}"
+  when: prefix == 'trex' 
+
+- name: Include role to create network and subnet
+  include_role:
+    name: osp/common
+    tasks_from: network.yml
+  vars:
+    network_name: "net-{{ item }}"
+    physical_network_name: "{{ item }}"
+    netprefix: "tenant"
+  loop: "{{ physical_networkslst }}"
+
+- name: Reset network_list
+  set_fact:
+    network_list: []
+
+- name: Add tenant network to network_list if external_network is defined
+  set_fact:
+    network_list: "{{ network_list + [ network_name_tenant ] }}"
+  when: external_network is defined
+
+- name: Add management network if provided
+  set_fact:
+    network_list: "{{ network_list + [ 'net-' + mgmt ] }}"
+  when: mgmt is defined and mgmt != ''
+
+- name: Create OSP network_list to create server
+  block:
+    - name: Create the network_list parameter for creating servers
+      set_fact:
+        network_list: "{{ network_list + [ 'net-' + item ] }}"
+      loop: "{{ physical_networks }}"
+
+    # One of the interface will have the IP and other interface on the same network will be bound to dpdk driver in testpmd
+    - name: Add one more instance of the first network to allow ssh access when network_mgmt is not available
+      set_fact:
+        network_list: "{{ network_list + [ 'net-' + physical_networks[0] ] }}"
+      when: mgmt is not defined or mgmt == ''
+  when: port_type is not defined or port_type == ''
+
+- name: Create OSP port_list to create server
+  block:
+
+    - name: Reset port_list
+      set_fact:
+        port_list: []
+
+    - name: Add created ports to the port list
+      set_fact:
+        port_list: "{{ port_list + [ prefix + '_port-' + item.name ] }}"
+#      when: item.physical_network is defined and item.physical_network in physical_networks and port_type in item.name
+      when: item.physical_network is defined and item.physical_network in physical_networks and port_type| replace('-physical','') in item.name
+      loop: "{{ networks  }}"
+  when: port_type is defined and port_type != ''
+
+- set_fact:
+    nics_updated: "{{ nics_updated|default([]) }}"
+
+- set_fact:
+    instances: "{{ instances|default([]) }}"
+
+- name: Include role to create server
+  include_role:
+    name: osp/common
+    tasks_from: server.yml
+  vars:
+    server_name: "{{prefix}}"
+    networklst: "{{ physical_networks }}"
+    netlst: "{{ networks }}"
+    ports: "{{ port_list|default(omit) }}"
+    flavor: "{{ testpmd_flavor_name }}"
+    image: "{{ glance_image_name }}"
+    key: "{{ keypair_name }}"
+
+- name: Set routers names
+  set_fact:
+    routers_names: "{{ networks
+      | selectattr('router_name', 'defined')
+      | map(attribute='router_name')
+      | list
+      | unique }}"
+
+- debug:
+    var: routers_names
+
+- name: Set subnets for routers interfaces
+  set_fact:
+    subnets_for_routers_interfaces: "{{ subnets_for_routers_interfaces
+      | default([]) }}
+      + [ {{ networks
+      | selectattr('router_name', 'defined')
+      | selectattr('external', 'defined')
+      | selectattr('external', 'equalto', False)
+      | selectattr('router_name', 'match', item)
+      | map(attribute='name')
+      | map('regex_replace', '^(.*)$', '\\1_subnet')
+      | list }} ]"
+  loop: "{{ routers_names | flatten(levels=1) }}"
+
+
+- name: Set routers list
+  set_fact:
+    routers_lists: "{{ routers_lists | default([]) + [[ item ]] }}"
+  loop: "{{ routers_names | flatten(levels=1) }}"

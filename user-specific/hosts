@@ -1,0 +1,5 @@
+# Nodes under [perf] group should be 
+#   * hypervisor in case of hybrid setup (controller as vm running along with undercloud)
+#   * undercloud in case of regular setup (controller as baremetal)
+[perf]
+10.1.8.58 ansible_user=root ansible_ssh_extra_args='-o StrictHostKeyChecking=no'
