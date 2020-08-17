@@ -1,6 +1,6 @@
 ---
 
-- include: suite/trex.yaml
+- include: suite/trex.yml
 
 - import_playbook: ansible-nfv/playbooks/packet_gen/trex/performance_scenario.yml
   vars:

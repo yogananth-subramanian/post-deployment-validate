@@ -1,0 +1,45 @@
+# Floating IP network (using Teanant network for mgmt)
+# Management network for guest VMs (based on provider network)
+extern: 'datacentre'
+mgmt: 'data1'
+datacentre: {gateway_ip: 172.16.0.1, "physical_network": "datacentre","cidr": "172.16.0.0/24","allocation_pool_start": "172.16.0.226","allocation_pool_end": "172.16.0.236" }
+data2: {segmentation_id: 408}
+
+sriov1: {gateway_ip: 50.0.4.1, "physical_network": "sriov1_406_direct","cidr": "50.0.4.0/24","allocation_pool_start": "50.0.4.10","allocation_pool_end": "50.0.4.100" }
+sriov2: {gateway_ip: 50.0.5.1, "physical_network": "sriov2_407_direct","cidr": "50.0.5.0/24","allocation_pool_start": "50.0.5.10","allocation_pool_end": "50.0.5.100" }
+
+physical_network_vf: ['sriov1', 'sriov2']
+physical_network_dpdk: ['data1','data2']
+physical_network_pf: ['sriov1', 'sriov2']
+
+dut_type: dpdk
+
+#set dut_compute and perf_compute to run perf test on specifc compute nodes
+testpmd_compute: overcloud-computeovsdpdksriov-0.localdomain
+perf_compute: overcloud-computesriov-0.localdomain
+
+trex_process_threads: 8
+testpmd_lcores: '1,2,3,4,5,6,7,8,9'
+trex_lcores: '1,2,3,4,5,6,7,8,9'
+testpmd_socket_mem: 7168
+hugepages_count: 8
+
+dut_macs: "fa:16:3e:06:35:60,fa:16:3e:bb:57:a0"
+trex_macs: "e4:43:4b:5c:96:72,e4:43:4b:5c:96:73"
+trex_vlans: "406,407"
+trex_vm: trex
+testpmd_vm: testpmd
+trex: {'user': 'centos','ssh_key': '/tmp/test_keypair.key'}
+testpmd: {'user': 'centos','ssh_key': '/tmp/test_keypair.key'}
+images:
+  - name: centos7cloud
+    url: file:////tmp/CentOS-7-x86_64-GenericCloud.qcow2
+
+multiqueue_set: False
+trex_process_threads: 2
+trex_platform:
+  master_thread_id: 0
+  latency_thread_id: 1
+  dual_if:
+    - socket: 0
+      threads: [2, 3, 4, 5, 6, 7, 8, 9]
