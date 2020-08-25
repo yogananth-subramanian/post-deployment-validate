@@ -189,3 +189,48 @@ For the above network config, **user-specific/trex.yml** would be set as follows
 +----------------------+
 
 ```
+
+## Scenarios supported at present
+### Perf TRex and Testpmd on vanilla OSP install
+| Parameter | Description |
+| --- | --- |
+| extern | (Mandatory) External network name for allocation of Floating IP |
+| mgmt | (Optional) Management network to be used for VM access. This parameter can be ignored if the VM has the tenant network access for management. |
+| physical_network_pf | (Mandatory) List of SR-IOV physical networks names to be used for PF allocation to TRex VM. |
+| physical_network_vf | Required for SR-IOV VF tests. List of SR-IOV physical network names to be used for VF allocation to TestPMD VM |
+| physical_network_dpdk | Required for OvS-DPDK vhostuser tests. List of OvS-DPDK physical network names to be used for vhostuser port allocation to TestPMD VM |
+| testpmd_compute | (Mandatory) Compute on which Testpmd should be deployed.|
+
+### Vanilla Perf with build image
+| Parameter | Description |
+| --- | --- |
+| extern | (Mandatory) External network name for allocation of Floating IP |
+| mgmt | (Optional) Management network to be used for VM access. This parameter can be ignored if the VM has the tenant network access for management. |
+| physical_network_pf | (Mandatory) List of SR-IOV physical networks names to be used for PF allocation to TRex VM. |
+| physical_network_vf | Required for SR-IOV VF tests. List of SR-IOV physical network names to be used for VF allocation to TestPMD VM |
+| physical_network_dpdk | Required for OvS-DPDK vhostuser tests. List of OvS-DPDK physical network names to be used for vhostuser port allocation to TestPMD VM |
+| build_image | (Mandatory) set to Ture |
+| images | (Optional) Centos Cloud image would be used as default |
+| testpmd_compute | (Mandatory) Compute on which Testpmd should be deployed |
+
+### Perf with existing TRex and Testpmd VM in OSP
+| Parameter | Description |
+| --- | --- |
+| trex_vm | (Mandatory) TReX VM name and access detail |
+| testpmd_vm | (Mandatory) Testpmd VM name and access detail |
+| dut_macs | (Mandatory) Testpmd VM mac address |
+| trex_macs | (Mandatory) TReX VM mac address |
+| trex_vlans | (Mandatory if VLAN is required)  VLANs to use for TReX traffic |
+| testpmd_compute | (Mandatory) Compute on which Testpmd should be deployed |
+
+### Perf with existing data path networks
+| Parameter | Description |
+| --- | --- |
+| extern | (Mandatory) External network name for allocation of Floating IP |
+| mgmt | (Optional) Management network to be used for VM access. This parameter can be ignored if the VM has the tenant network access for management. |
+| physical_network_pf | (Mandatory) List of SR-IOV physical networks names to be used for PF allocation to TRex VM. |
+| physical_network_vf | Required for SR-IOV VF tests. List of SR-IOV physical network names to be used for VF allocation to TestPMD VM |
+| physical_network_dpdk | Required for OvS-DPDK vhostuser tests. List of OvS-DPDK physical network names to be used for vhostuser port allocation to TestPMD VM |
+| testpmd_compute | (Mandatory) Compute on which Testpmd should be deployed |
+| {network name} | Attributes to override for the network. <p>Example:<p>extern: 'datacentre'<br/>datacentre: {gateway_ip: 172.16.0.1, "physical_network": "datacentre","cidr": "172.16.0.0/24","allocation_pool_start": "172.16.0.226","allocation_pool_end": "172.16.0.236" | 
+
