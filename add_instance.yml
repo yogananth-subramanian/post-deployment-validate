@@ -17,6 +17,10 @@
     include_tasks: roles/osp/common/tasks/add_instance.yml
     loop: "{{dynamic_instances}}"
 
+  - name: set dut_group
+    set_fact:
+      dut_group: "{{dut_group}}"
+
 - hosts: 'trex'
   tasks:
   - name: Gather Instance Facts From OpenStack API

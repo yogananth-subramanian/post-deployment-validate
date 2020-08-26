@@ -25,6 +25,7 @@
     - role: osp/common
       port_type: 'normal'
       prefix: 'trex'
+      when: not (trex_vm is defined and testpmd_vm is defined )
     - role: trex/install
       physical_networks: "{{ physical_network_dpdk }}"
       port_type: 'normal'
@@ -74,4 +75,6 @@
       when: instances is defined
     - name: Ansible Template Example
       local_action: template src=trex.j2  dest={{ lookup('env', 'PWD') }}/debug.trexvar.yml
+      when: instances is defined
+
 

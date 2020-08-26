@@ -12,21 +12,21 @@
     launch_trex: True
     binary_search: False
     cloud_resources: create
-    forward_mode: "{{ hostvars[groups['undercloud'][0]]['forward_mode'] }}"
-    trex_set_vlan: "{{ hostvars[groups['undercloud'][0]]['trex_set_vlan'] }}"
+    forward_mode: "{{ hostvars[groups['undercloud'][0]]['forward_mode']| default('mac') }}"
+    trex_set_vlan: "{{ hostvars[groups['undercloud'][0]]['trex_set_vlan']|default('True') }}"
     trex_process_threads: "{{ hostvars[groups['undercloud'][0]]['trex_process_threads'] }}"
-    testpmd_lcores: "{{ hostvars[groups['undercloud'][0]]['testpmd_lcores'] }}"
-    trex_lcores: "{{ hostvars[groups['undercloud'][0]]['trex_lcores'] }}"
-    testpmd_socket_mem: "{{ hostvars[groups['undercloud'][0]]['testpmd_socket_mem'] }}"
-    hugepages_count: "{{ hostvars[groups['undercloud'][0]]['hugepages_count'] }}"
+    testpmd_lcores: "{{ hostvars[groups['undercloud'][0]]['testpmd_lcores']| default('1,2,3,4,5,6,7,8,9') }}"
+    trex_lcores: "{{ hostvars[groups['undercloud'][0]]['trex_lcores']|default('1,2,3,4,5,6,7,8,9') }}"
+    testpmd_socket_mem: "{{ hostvars[groups['undercloud'][0]]['testpmd_socket_mem']|default('7168') }}"
+    hugepages_count: "{{ hostvars[groups['undercloud'][0]]['hugepages_count']| default('8') }}"
     trex_platform:  "{{ hostvars[groups['undercloud'][0]]['trex_platform'] }}"
-    dut_group:  "{{ hostvars[groups['undercloud'][0]]['dut_group'] }}"
+    dut_group: "{% if hostvars[groups['undercloud'][0]]['dut_group'] is defined%} {{hostvars[groups['undercloud'][0]]['dut_group']}}{%
     dut_type:  "{{ hostvars[groups['undercloud'][0]]['dut_type'] }}"
   when: not (trex_vm is defined and testpmd_vm is defined )
 
 - import_playbook: add_instance.yml
   vars:
-    dut_group: "{{ hostvars[groups['undercloud'][0]]['dut_group'] }}"
+    dut_group: "{% if hostvars[groups['undercloud'][0]]['dut_group'] is defined%} {{hostvars[groups['undercloud'][0]]['dut_group']}}{%
     dut_type: "{{ hostvars[groups['undercloud'][0]]['dut_type'] }}"
     venv_path: "/tmp/ansible_venv"
   when: trex_vm is defined or testpmd_vm is defined
@@ -41,13 +41,13 @@
     launch_trex: False
     binary_search: True
     cloud_resources: external
-    trex_set_vlan: "{{ hostvars[groups['undercloud'][0]]['trex_set_vlan'] }}"
-    forward_mode: "{{ hostvars[groups['undercloud'][0]]['forward_mode'] }}"
+    trex_set_vlan: "{{ hostvars[groups['undercloud'][0]]['trex_set_vlan'] |default('True')}}"
+    forward_mode: "{{ hostvars[groups['undercloud'][0]]['forward_mode'] | default('mac')}}"
     trex_process_threads: "{{ hostvars[groups['undercloud'][0]]['trex_process_threads'] }}"
-    testpmd_lcores: "{{ hostvars[groups['undercloud'][0]]['testpmd_lcores'] }}"
-    trex_lcores: "{{ hostvars[groups['undercloud'][0]]['trex_lcores'] }}"
-    testpmd_socket_mem: "{{ hostvars[groups['undercloud'][0]]['testpmd_socket_mem'] }}"
-    hugepages_count: "{{ hostvars[groups['undercloud'][0]]['hugepages_count'] }}"
+    testpmd_lcores: "{{ hostvars[groups['undercloud'][0]]['testpmd_lcores']| default('1,2,3,4,5,6,7,8,9') }}"
+    trex_lcores: "{{ hostvars[groups['undercloud'][0]]['trex_lcores'] |default('1,2,3,4,5,6,7,8,9')}}"
+    testpmd_socket_mem: "{{ hostvars[groups['undercloud'][0]]['testpmd_socket_mem'] |default('7168')  }}"
+    hugepages_count: "{{ hostvars[groups['undercloud'][0]]['hugepages_count'] | default('8')}}"
     trex_platform:  "{{ hostvars[groups['undercloud'][0]]['trex_platform'] }}"
     dut_group:  "{{ hostvars[groups['undercloud'][0]]['dut_group'] }}"
     dut_type:  "{{ hostvars[groups['undercloud'][0]]['dut_type'] }}"
