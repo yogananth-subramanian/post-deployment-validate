@@ -57,8 +57,13 @@
 
 - name: Extract required variables from plan-environment
   set_fact:
+    bridge_mappings_tmp: "{{ bridge_mappings_tmp + plan.parameter_defaults.NeutronPhysicalDevMappings|default([]) }}"
+  when: plan.parameter_defaults.NeutronPhysicalDevMappings is defined and plan.parameter_defaults.NeutronPhysicalDevMappings | type_debug == "list"
+
+- name: Extract required variables from plan-environment
+  set_fact:
     bridge_mappings_tmp: "{{ bridge_mappings_tmp + plan.parameter_defaults.NeutronPhysicalDevMappings.split(',')|default([]) }}"
-  when: plan.parameter_defaults.NeutronPhysicalDevMappings is defined
+  when: plan.parameter_defaults.NeutronPhysicalDevMappings is defined and plan.parameter_defaults.NeutronPhysicalDevMappings | type_debug == "string"
 
 - debug:
     msg: "{{plan.parameter_defaults|to_json|from_json |json_query(_query)}}"

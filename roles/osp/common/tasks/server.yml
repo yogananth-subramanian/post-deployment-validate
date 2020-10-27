@@ -5,7 +5,7 @@
 
 - name: map networks to port
   set_fact:
-   mgmt_name: "vxlan"
+   mgmt_name: "{{ mgmt }}"
   when: '"trex" in server_name and groups["openstack_nodes"]|length >2'
 
 - name: Set the type of the network - vxlan
@@ -47,7 +47,7 @@
 
 - name: Set net_ports
   set_fact:
-   net_ports: "{{ net_ports|default([]) + [{'name': item.1,'network':item.0.name,'type':port_type}] }}"
+   net_ports: "{{ net_ports|default([]) + [{'name': item.1,'network':item.0.name,'type':port_type,'port_security': false}] }}"
   with_together:
     - "{{ net_portlst }}"
     - "{{ port_list }}"
