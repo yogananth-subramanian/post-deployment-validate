@@ -81,7 +81,7 @@ virtualenv venv
 source venv/bin/activate
 git clone --recurse-submodules https://github.com/yogananth-subramanian/post-deployment-validate.git
 cd post-deployment-validate
-patch -p1 --dry-run -d ansible-nfv/ < ../patch
+patch -p1  -d ansible-nfv/ <  ./patch-01
 pip install -r requirements.txt
 ```
 * Initialize ansible inventory.
