@@ -1,0 +1,12 @@
+diff --git a/roles/post_install/tripleo_inventory/tasks/main.yml b/roles/post_install/tripleo_inventory/tasks/main.yml
+index d139a50..ce7eb7d 100644
+--- a/roles/post_install/tripleo_inventory/tasks/main.yml
++++ b/roles/post_install/tripleo_inventory/tasks/main.yml
+@@ -74,7 +74,7 @@
+            ) }}"
+         ansible_user: "{{ overcloud_user }}"
+         ansible_ssh_pass: ""
+-        ansible_host: "{{ item.accessIPv4 }}"
++        ansible_host: "{{ item.private_v4 }}"
+         ansible_ssh_private_key_file: "{{ overcloud_private_key }}"
+       loop: "{{ openstack_servers }}"
