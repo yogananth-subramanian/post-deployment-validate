@@ -1,5 +1,4 @@
 extern: 'datacentre'
-mgmt: 'data1'
 
 physical_network_dpdk: ['data1','data2']
 physical_network_pf: ['sriov1', 'sriov2']
