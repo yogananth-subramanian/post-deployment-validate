@@ -4,3 +4,4 @@ selinux==0.1.6
 ncclient>=0.5.3
 netaddr
 jmespath
+git+https://github.com/yogananth-subramanian/virt-customize-ansible-modules
