@@ -1,0 +1,9 @@
+---
+- include: suite/trex.yml
+
+- import_playbook: multiqueue_traffic_gen/mqplay.yml
+  vars:
+    discover_instance_external_ip: True
+    dut_compute: "{{ testpmd_compute.split('.')[0] }}"
+    dut_group: dpdk_dut
+    osp_var: "{{playbook_dir}}/../debug.trexvar.yml"
