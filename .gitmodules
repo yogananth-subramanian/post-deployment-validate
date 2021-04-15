@@ -2,3 +2,6 @@
 	path = ansible-nfv
 	url = https://github.com/redhat-openstack/ansible-nfv.git
 	branch = devel
+[submodule "multiqueue_traffic_gen"]
+	path = multiqueue_traffic_gen
+	url = https://github.com/yogananth-subramanian/multiqueue_traffic_gen.git
