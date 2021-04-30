@@ -72,7 +72,7 @@
 
 - name: Extract required variables from plan-environment
   set_fact:
-    bridge_mappings_tmp: "{{ bridge_mappings_tmp +(plan.parameter_defaults|to_json|from_json |json_query(_query))[0].split(',')|default([]) }}"
+    bridge_mappings_tmp: "{{ bridge_mappings_tmp +(plan.parameter_defaults|to_json|from_json |json_query(_query))[0]|default([]) }}"
   when: plan.parameter_defaults|to_json|from_json |json_query(_query)
   vars:
     _query: "*.NeutronPhysicalDevMappings"
