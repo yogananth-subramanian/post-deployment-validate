@@ -126,10 +126,6 @@
     mgmtnet: "{{mgmt}}"
   when: mgmt in mapping.keys()
 
-- set_fact:
-    images: "{{images}}"
-    flavors: "{{flavors}}"
-
 - name: Add groups to instance
   set_fact:
     aggregate_groups: [] 
@@ -141,10 +137,15 @@
     dutagg: "{{{}|combine({'name':'dut','hosts':[testpmd_compute],'metadata':['flavor=dut'] }) }}"
   when: perf_compute is defined and testpmd_compute is defined
 
-- name: debug_flavor
+- name: Set image multiqueue properties
   set_fact:
-    images: "{{[images| combine({'properties':{ 'hw_vif_multiqueue_enabled': 'true' }}, recursive=True)]}}"
+    images: "{{[vm_image| combine({ 'properties': { 'hw_vif_multiqueue_enabled': 'true' }}, r
+ecursive=True)]}}"  
   when: multiqueue_set is defined and multiqueue_set
+
+- set_fact:
+    images: "{{images|default(vm_image)}}"
+    flavors: "{{flavors}}
 
 - name: Set instances
   set_fact:
