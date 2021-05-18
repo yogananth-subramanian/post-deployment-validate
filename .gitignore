@@ -1,0 +1,6 @@
+.venv
+debug.*
+environments
+inventory
+ansible.ssh.config
+*sync.sh

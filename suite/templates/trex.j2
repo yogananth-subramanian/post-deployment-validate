@@ -6,12 +6,18 @@ instances:
 
 {% if dynamic_instances is defined %}
 dynamic_instances:
-{{dynamic_instances| to_nice_yaml}}
+{{dynamic_instances|to_nice_yaml}}
 {% endif %}
 
+{% if network_existing_names|default([])|length > 0 %}
+{%- set network_updated = [] -%}
+{% for x in networks if x.name not in network_existing_names and x.name != "datacentre" %}{{ network_updated.append(x) }}{% endfor %}
 networks:
-{{networks| to_nice_yaml}}
-
+{{ network_updated|to_nice_yaml }}
+{%- else -%}
+networks:
+{{ networks|to_nice_yaml }}
+{% endif %}
 
 security_groups:
 {{security_groups| to_nice_yaml}}
@@ -51,9 +57,10 @@ multiqueue_set: true
 {% else %}
 multiqueue_set: false
 {% endif %}
-{% if dut_compute is defined %}
+{% if dut_compute is defined and dut_compute is string %}
 dut_compute: {{dut_compute.split('.')[0]}}
-#dut_compute: {{dut_compute}}
+{% elif dut_compute is defined %}
+dut_compute: {{ dut_compute }}
 {% endif %}
 {% if dut_type is defined %}
 dut_type: {{dut_type}}

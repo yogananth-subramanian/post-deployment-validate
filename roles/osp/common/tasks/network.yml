@@ -97,11 +97,20 @@
     networks_lst: "{{ networks_lst|default([])+[item.name]}}"
   loop: "{{networks}}"
 
-- name: Set the internal network
+- name: Generate network name
   set_fact:
-#    net_name: "{{[physical_network_name,seg_id,port_type]|join('_')}}"
-    net_name: "{{[physical_network_name,seg_id,port_type| replace('-physical','')]|join('_')}}"
-  when: netprefix != "extern" and  netprefix != "mgmt" 
+    net_name: "{{ [ physical_network_name, seg_id, port_type | replace('-physical','')]|join('_') }}"
+  when:
+  - netprefix != "extern" and  netprefix != "mgmt"
+  - network_name_existing is not defined
+
+- name: Set network name
+  set_fact:
+    net_name: "{{ network_name_existing }}"
+  when:
+  - netprefix != "extern" and  netprefix != "mgmt"
+  - network_name_existing is defined
+  - network_name_existing|length > 0
 
 - name: Set the internal network
   set_fact:
@@ -110,12 +119,12 @@
 
 - name: Set external network
   set_fact:
-    tempnet: "{{ tempnet | combine({'name': extern,'network_type':network_type,'cidr':cidr,'allocation_pool_start':allocation_pool_start,'allocation_pool_end':allocation_pool_end,'gateway_ip':gateway_ip,'enable_dhcp': true,'external': true,'shared': true,'router_name': 'router1','port_type':port_type}) }}"
+    tempnet: "{{ tempnet | combine({'name': extern,'network_type':network_type,'cidr':cidr,'allocation_pool_start':allocation_pool_start,'allocation_pool_end':allocation_pool_end,'gateway_ip':gateway_ip,'enable_dhcp': true,'external': true,'shared': true,'router_name': external_router_name,'port_type':port_type}) }}"
   when: netprefix == "extern" 
 
 - name: Set mgmt network
   set_fact:
-    tempnet: "{{ tempnet | combine({'name': 'mgmt_'+mgmt_name,'network_type':network_type,'cidr':cidr,'allocation_pool_start':allocation_pool_start,'allocation_pool_end':allocation_pool_end,'gateway_ip':gateway_ip,'enable_dhcp': true,'external': false,'router_name': 'router1','mgmt': true,'tag': 'external','port_type':port_type}) }}"
+    tempnet: "{{ tempnet | combine({'name': 'mgmt_'+mgmt_name,'network_type':network_type,'cidr':cidr,'allocation_pool_start':allocation_pool_start,'allocation_pool_end':allocation_pool_end,'gateway_ip':gateway_ip,'enable_dhcp': true,'external': false,'router_name': external_router_name,'mgmt': true,'tag': 'external','port_type':port_type}) }}"
   when: netprefix == 'mgmt'
 
 - name: Set networks keys 

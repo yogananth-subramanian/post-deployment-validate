@@ -3,7 +3,7 @@
     var: port_list
   ignore_errors: yes
 
-- name: map networks to port
+- name: choose mgmt_name
   set_fact:
    mgmt_name: "{{ mgmt }}"
   when: '"trex" in server_name and groups["openstack_nodes"]|length >2'
@@ -35,11 +35,12 @@
 
 - name: map networks to port
   set_fact:
-   net_portlst: "{{ net_portlst|default([]) + [item] }}"
-#  when: item.physical_network is defined and item.physical_network in networklst and port_type in item.name
-  when: item.physical_network is defined and item.physical_network in networklst and port_type| replace('-physical','') in item.name
+    net_portlst: "{{ net_portlst|default([]) + [item] }}"
+  when:
+  - item.physical_network is defined
+  - item.physical_network in networklst
+  - port_type|replace('-physical','') in item.name or item.name in network_existing_names|default([])
   loop: "{{ netlst }}"
-
 
 - name: Reset net_ports
   set_fact:
@@ -51,7 +52,6 @@
   with_together:
     - "{{ net_portlst }}"
     - "{{ port_list }}"
-
 
 - name: Reset tempinst
   set_fact:
