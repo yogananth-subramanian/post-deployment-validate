@@ -5,6 +5,7 @@
 
 - debug:
     var: tun_type
+- debug: var=mapping
 
 - name: Set the type of the network - vlan
   set_fact:
@@ -112,6 +113,12 @@
   - network_name_existing is defined
   - network_name_existing|length > 0
 
+- name: Set network name for extern network
+  set_fact:
+    net_name: "{{ external_network_name|default(extern) }}"
+  when:
+  - netprefix == "extern"
+
 - name: Set the internal network
   set_fact:
     tempnet: "{{ tempnet |combine({'name': net_name,'network_type':network_type,'cidr':cidr,'allocation_pool_start':allocation_pool_start,'allocation_pool_end':allocation_pool_end,'no_gateway_ip': true,'enable_dhcp': false,'port_type':port_type}) }}"
@@ -119,7 +126,7 @@
 
 - name: Set external network
   set_fact:
-    tempnet: "{{ tempnet | combine({'name': extern,'network_type':network_type,'cidr':cidr,'allocation_pool_start':allocation_pool_start,'allocation_pool_end':allocation_pool_end,'gateway_ip':gateway_ip,'enable_dhcp': true,'external': true,'shared': true,'router_name': external_router_name,'port_type':port_type}) }}"
+    tempnet: "{{ tempnet | combine({'name': net_name,'network_type':network_type,'cidr':cidr,'allocation_pool_start':allocation_pool_start,'allocation_pool_end':allocation_pool_end,'gateway_ip':gateway_ip,'enable_dhcp': true,'external': true,'shared': true,'router_name': external_router_name,'port_type':port_type}) }}"
   when: netprefix == "extern" 
 
 - name: Set mgmt network
@@ -166,4 +173,3 @@
   set_fact:
     test_networks: "{{ test_networks + [tempnet] }}"
   when: tempnet.keys()|length > 0 and prefix == 'tempest' and netprefix != 'extern'
- 
