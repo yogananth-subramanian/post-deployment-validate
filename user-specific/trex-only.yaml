@@ -29,7 +29,7 @@ flavors:
 trex_process_threads: 1
 trex_lcores: 1,2,3,4
 
-external_router_name: public
+external_router_name: mgmt
 dut_group: ''
 dut_type: ''
 dut_compute: []

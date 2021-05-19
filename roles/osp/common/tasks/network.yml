@@ -75,8 +75,8 @@
 - set_fact:
     gateway_ip: "{{ ref_physical_network_name.gateway_ip|default(extern_def_route) }}"
     cidr: "{{ ref_physical_network_name.cidr|default (extern_net_cidr) }}"
-    allocation_pool_start: "{{ ref_physical_network_name.allocation_pool_start|default(extern_net_cidr|next_nth_usable(10))}}"
-    allocation_pool_end: "{{ ref_physical_network_name.allocation_pool_end|default(extern_net_cidr|next_nth_usable(20))}}"
+    allocation_pool_start: "{{ ref_physical_network_name.allocation_pool_start|default(extern_net_cidr|next_nth_usable(120))}}"
+    allocation_pool_end: "{{ ref_physical_network_name.allocation_pool_end|default(extern_net_cidr|next_nth_usable(130))}}"
   when: netprefix == "extern" 
 
 - name: Set the network prefix for the internal network
