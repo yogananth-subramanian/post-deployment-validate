@@ -15,8 +15,10 @@ networks:
 security_groups:
 {{security_groups| to_nice_yaml}}
 
+{% if users %}
 users:
 {{users| to_nice_yaml}}
+{% endif %}
 
 flavors:
 {{flavors| to_nice_yaml}}
@@ -36,7 +38,7 @@ dut_group: {{dut_group}}
 resources_output_file: /home/stack/resources_output_file.yml
 
 setup_os_env: true
-user: true
+user: {{ enable_users|default(true) }}
 quota: true
 network: true
 net_port: true

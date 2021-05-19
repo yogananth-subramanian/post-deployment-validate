@@ -34,3 +34,6 @@ external_router_name: mgmt
 dut_group: ''
 dut_type: ''
 dut_compute: []
+
+enable_users: false
+users: []
