@@ -68,9 +68,13 @@
     flavor_name: "dut"
   when: '"testpmd" in server_name and testpmd_compute is defined and perf_compute is defined'
 
+- name: Set external network name
+  set_fact:
+    ext_net_name: "{{ external_network_name|default(extern) }}"
+
 - name: Set the instances variables
   set_fact:
-   tempinst: "{{ tempinst | combine({'name':server_name,'flavor':flavor_name,'image':images[0].name,'key_name':key,'nics':nics_updated,'net_ports':net_ports,'floating_ip':{'ext_net':extern,'int_net': 'mgmt_'+mgmt_name},'sec_groups':security_groups[0].name,'config_drive': true }) }}"
+   tempinst: "{{ tempinst | combine({'name':server_name,'flavor':flavor_name,'image':images[0].name,'key_name':key,'nics':nics_updated,'net_ports':net_ports,'floating_ip':{'ext_net':ext_net_name,'int_net': 'mgmt_'+mgmt_name},'sec_groups':security_groups[0].name,'config_drive': true }) }}"
 
 
 - name: Add groups to instance
