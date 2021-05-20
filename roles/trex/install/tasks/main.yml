@@ -35,10 +35,21 @@
     name: osp/common
     tasks_from: network.yml
   vars:
-    network_name: "net-{{ item }}"
     physical_network_name: "{{ item }}"
     netprefix: "tenant"
   loop: "{{ physical_networkslst }}"
+  when: network_existing_names|default([])|length == 0
+
+- name: Include role to create network and subnet with existing networks
+  include_role:
+    name: osp/common
+    tasks_from: network.yml
+  vars:
+    physical_network_name: "{{ item.0 }}"
+    netprefix: "tenant"
+    network_name_existing: "{{ item.1 }}"
+  loop: "{{ physical_networkslst|zip(network_existing_names)|list }}"
+  when: network_existing_names|default([])|length > 0
 
 - name: Reset network_list
   set_fact:
@@ -70,16 +81,17 @@
 
 - name: Create OSP port_list to create server
   block:
-
     - name: Reset port_list
       set_fact:
         port_list: []
 
     - name: Add created ports to the port list
       set_fact:
-        port_list: "{{ port_list + [ prefix + '_port-' + item.name ] }}"
-#      when: item.physical_network is defined and item.physical_network in physical_networks and port_type in item.name
-      when: item.physical_network is defined and item.physical_network in physical_networks and port_type| replace('-physical','') in item.name
+        port_list: "{{ port_list + [ prefix + '_port_' + item.name ] }}"
+      when:
+      - item.physical_network is defined
+      - item.physical_network in physical_networks
+      - port_type|replace('-physical','') in item.name or item.name in network_existing_names|default([])
       loop: "{{ networks  }}"
   when: port_type is defined and port_type != ''
 

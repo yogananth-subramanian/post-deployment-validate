@@ -6,18 +6,19 @@ instances:
 
 {% if dynamic_instances is defined %}
 dynamic_instances:
-{{dynamic_instances| to_nice_yaml}}
+{{dynamic_instances|to_nice_yaml}}
 {% endif %}
 
 networks:
-{{networks| to_nice_yaml}}
-
+{{ networks|to_nice_yaml }}
 
 security_groups:
 {{security_groups| to_nice_yaml}}
 
+{% if users %}
 users:
 {{users| to_nice_yaml}}
+{% endif %}
 
 flavors:
 {{flavors| to_nice_yaml}}
@@ -36,8 +37,8 @@ dut_group: {{dut_group}}
 
 resources_output_file: /home/stack/resources_output_file.yml
 
-setup_os_env: true
-user: true
+setup_os_env: {{ setup_os_env|default(true) }}
+user: {{ enable_users|default(true) }}
 quota: true
 network: true
 net_port: true
@@ -51,9 +52,10 @@ multiqueue_set: true
 {% else %}
 multiqueue_set: false
 {% endif %}
-{% if dut_compute is defined %}
+{% if dut_compute is defined and dut_compute is string %}
 dut_compute: {{dut_compute.split('.')[0]}}
-#dut_compute: {{dut_compute}}
+{% elif dut_compute is defined %}
+dut_compute: {{ dut_compute }}
 {% endif %}
 {% if dut_type is defined %}
 dut_type: {{dut_type}}

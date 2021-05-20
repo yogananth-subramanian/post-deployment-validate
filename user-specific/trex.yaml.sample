@@ -31,7 +31,7 @@ trex_vm: trex
 testpmd_vm: testpmd
 trex: {'user': 'centos','ssh_key': '/tmp/test_keypair.key'}
 testpmd: {'user': 'centos','ssh_key': '/tmp/test_keypair.key'}
-vm_image:
+images:
   - name: centos7cloud
     url: file:////tmp/CentOS-7-x86_64-GenericCloud.qcow2
 

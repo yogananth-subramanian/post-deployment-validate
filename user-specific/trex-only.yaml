@@ -1,0 +1,43 @@
+extern: 'datacentre'
+
+physical_network_vf: ['sriov2', 'sriov2']
+network_existing_names: ['radio_uplink', 'radio_downlink']
+external_network_name: public
+
+images:
+  - name: rhel76
+    url: file:////tmp/nfv_tuned_rhel76.qcow2
+
+connection_user: cloud-user
+
+trex_vm: trex
+trex: {'user': 'centos','ssh_key': '/tmp/test_keypair.key'}
+trex_only: true
+
+flavors:
+  - name: trex-sos
+    ram: 8192
+    disk: 20
+    vcpus: 6
+    extra_specs:
+     "hw:mem_page_size": "1GB"
+     "hw:numa_mem.0": "8192"
+     "hw:numa_mempolicy": "strict"
+     "hw:numa_cpus.0": "0,1,2,3,4,5"
+     "hw:cpu_policy": "dedicated"
+     "hw:emulator_threads_policy": "isolate"
+
+trex_process_threads: 1
+trex_lcores: 1,2,3,4
+
+external_router_name: mgmt
+dut_group: ''
+dut_type: ''
+dut_compute: []
+
+enable_users: false
+users: []
+
+# invoking setup re-writes the ~/.config/openstack/clouds.yaml file wrongly, skip for now
+skip_setup: true
+setup_os_env: false

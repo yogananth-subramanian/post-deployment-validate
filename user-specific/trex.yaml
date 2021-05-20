@@ -6,6 +6,6 @@ physical_network_pf: ['sriov1', 'sriov2']
 testpmd_compute: overcloud-computeovsdpdksriov-0.localdomain
 perf_compute: overcloud-computesriov-0.localdomain
 
-vm_image:
+images:
   - name: centos7cloud
     url: file:////tmp/CentOS-7-x86_64-GenericCloud.qcow2

@@ -37,6 +37,8 @@ images:
   - name: centos7cloud
     url: https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2
 
+external_router_name: router1
+
 external_net:
   - name: 'external_net_419'
     physical_network: 'br-ex'
