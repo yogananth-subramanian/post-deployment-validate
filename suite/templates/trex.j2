@@ -37,7 +37,7 @@ dut_group: {{dut_group}}
 
 resources_output_file: /home/stack/resources_output_file.yml
 
-setup_os_env: true
+setup_os_env: {{ setup_os_env|default(true) }}
 user: {{ enable_users|default(true) }}
 quota: true
 network: true
