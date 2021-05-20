@@ -40,3 +40,4 @@ users: []
 
 # invoking setup re-writes the ~/.config/openstack/clouds.yaml file wrongly, skip for now
 skip_setup: true
+setup_os_env: false
