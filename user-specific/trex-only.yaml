@@ -1,7 +1,8 @@
 extern: 'datacentre'
 
 #physical_network_pf: ['sriov1', 'sriov2']
-physical_network_vf: ['sriov2', 'sriov2']
+physical_network_vf: ['sriov1', 'sriov2']
+#physical_network_vf: ['sriov2', 'sriov2']
 network_existing_names: ['radio_uplink', 'radio_downlink']
 external_network_name: public
 
