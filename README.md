@@ -88,6 +88,11 @@ pip install -r requirements.txt
 ```
 ansible-playbook initialize.yaml -e host=<UndercloudIP>  -e user=stack -e ssh_key=~/.ssh/id_rsa -e setup_type=baremetal
 ```
+* Prepare VM image with trex and dpdk.
+```
+ansible-playbook ansible-nfv/playbooks/images/prepare_performance_images.yml -e guest_image="https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2"  -e customization_host=localhost  -e prepare_guest_hci=False  -e trex_version=v2.88 -vvv
+```
+
 * Cluster Specific Configuration
  
   **user-specific/trex.yaml** file defines the minimal set of parameters required to run the performance validation. 
