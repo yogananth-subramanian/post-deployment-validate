@@ -77,11 +77,11 @@ TRex benchmark run by ansible-nfv, will by default determine the maximum through
 
 * Install prerequisites to run the packet generator from the undercloud.
 ```
-virtualenv venv
-source venv/bin/activate
 git clone --recurse-submodules https://github.com/yogananth-subramanian/post-deployment-validate.git
 cd post-deployment-validate
 patch -p1  -d ansible-nfv/ <  ./patch-01
+python -m venv --system-site-packages  .venv
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
 * Initialize ansible inventory.
