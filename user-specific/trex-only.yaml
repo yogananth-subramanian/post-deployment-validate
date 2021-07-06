@@ -23,11 +23,8 @@ flavors:
     vcpus: 6
     extra_specs:
      "hw:mem_page_size": "1GB"
-     "hw:numa_mem.0": "8192"
-     "hw:numa_mempolicy": "strict"
-     "hw:numa_cpus.0": "0,1,2,3,4,5"
      "hw:cpu_policy": "dedicated"
-     "hw:emulator_threads_policy": "isolate"
+     "hw:emulator_threads_policy": "share"
 
 trex_process_threads: 1
 trex_lcores: 1,2,3,4
