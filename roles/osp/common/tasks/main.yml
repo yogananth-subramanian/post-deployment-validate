@@ -84,17 +84,23 @@
 
 - set_fact:
     vlan_ranges: "{{ vlan_ranges|default([]) + [{ 'network': item.split(':')[0], 'start': item.split(':')[1]|int, 'end': item.split(':')[2]|int }] }}"
+  when: item
   loop: "{{ vlan_ranges_tmp }}"
 
 - set_fact:
+    mapping: {}
+
+- set_fact:
     mapping: "{{ mapping|default({}) | combine({item[0].network: {'network': item[0].network, 'bridge': item[0].bridge, 'start': item[1].start, 'end': item[1].end}}) }}"
-  when: item[0].network == item[1].network
+  when:
+  - vlan_ranges is defined
+  - item[0].network == item[1].network
   loop: "{{ bridge_mappings | product(vlan_ranges) | list }}"
 
 - set_fact:
     trex_set_vlan: True
     forward_mode: 'mac'
-  when: mapping != {}
+  when: mapping is defined and mapping != {}
 
 - set_fact:
     bridge_lst: "{{bridge_lst|default([])+[item.network]}}"
@@ -102,10 +108,12 @@
 
 - set_fact:
     bridge_dfiff: "{{bridge_lst| difference(mapping.keys())}}"
+  when: mapping is defined
 
 - set_fact:
     mapping: "{{ mapping|default({}) | combine({item: {'network': item}}) }}"
   loop: "{{bridge_lst| difference(mapping.keys())}}"
+  when: mapping is defined
 
 - set_fact:
     networks: "{{ networks|default([]) }}"
@@ -125,7 +133,7 @@
 
 - set_fact:
     mgmtnet: "{{mgmt}}"
-  when: mgmt in mapping.keys()
+  when: mapping is defined and mgmt in mapping.keys()
 
 - set_fact:
     images: "{{images}}"
@@ -133,7 +141,7 @@
 
 - name: Add groups to instance
   set_fact:
-    aggregate_groups: [] 
+    aggregate_groups: []
     perfflavor: "{{ flavors| combine({'name':'trex','extra_specs':flavors[0]['extra_specs'] | combine({'aggregate_instance_extra_specs:flavor': 'trex' })}) }}"
     perfagg: "{{{}|combine({'name':'trex','hosts':[perf_compute],'metadata':['flavor=trex'] }) }}"
     dutflavor: "{{ flavors| combine({'name':'dut','extra_specs':flavors[0]['extra_specs'] | combine({'aggregate_instance_extra_specs:flavor': 'dut' })}) }}"
@@ -226,7 +234,7 @@
     name: osp/common
     tasks_from: network.yml
   vars:
-    physical_network_name: "{{ network_external.physical_network }}" 
+    physical_network_name: "{{ network_external.physical_network }}"
     netprefix: "extern"
 
 - name: Include role to create mgmt networt
